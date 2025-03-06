@@ -1,12 +1,9 @@
 package web
 
 import (
-	"bytes"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
-	log "github.com/tengfei-xy/go-log"
 )
 
 type msgErr int
@@ -82,28 +79,17 @@ func msgBadRequest(msg ...string) message {
 	}
 	return m
 }
-func ok(g *gin.Context) {
-	d := msgOK()
-	// log.Debug3f("\n%s", sys.JsonPrettyPrint(d))
-	g.JSON(http.StatusOK, d)
-}
+
+// func ok(g *gin.Context) {
+// 	d := msgOK()
+// 	// log.Debug3f("\n%s", sys.JsonPrettyPrint(d))
+// 	g.JSON(http.StatusOK, d)
+// }
 
 func okData(g *gin.Context, obj any) {
 	d := msgOK().setData(obj)
 	// log.Debug3f("\n%s", sys.JsonPrettyPrint(d))
 	g.JSON(http.StatusOK, d)
-}
-func okImage(g *gin.Context, data bytes.Buffer) {
-	name := g.Param("file")
-
-	switch strings.Split(name, ".")[1] {
-	case "png":
-		g.Data(http.StatusOK, "image/png", data.Bytes())
-	case "jpg":
-		g.Data(http.StatusOK, "image/jpeg", data.Bytes())
-	default:
-		log.Warnf("未知图片类型,%s", name)
-	}
 }
 
 func badRequest(g *gin.Context) {

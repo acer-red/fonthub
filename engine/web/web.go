@@ -11,26 +11,32 @@ import (
 )
 
 func FontRoute(g *gin.Engine) {
-	g.GET("/font/:filename", GetFont)
-	g.POST("/font/:filename", PostFont)
-	g.DELETE("/font/:filename", DeleteFont)
-	// g.PUT("/font/:name", PutFont)
+	g.GET("/api/font/:filename", GetFont)
+	g.POST("/api/font/:filename", PostFont)
+	g.DELETE("/api/font/:filename", DeleteFont)
 }
 func FontsRoute(g *gin.Engine) {
-	g.GET("/fonts", GetFonts)
-	// g.PUT("/font/:name", PutFont)
+	g.GET("/api/fonts", GetFonts)
 }
 
 func GetFont(c *gin.Context) {
 	filename := c.Param("filename")
 	fontpath := c.MustGet("fontpath").(string)
 
+	if filename == "" {
+		badRequest(c)
+		return
+	}
 	f, err := os.ReadFile(filepath.Join(fontpath, filename))
 	if err != nil {
 		notFound(c)
 		return
 	}
-	font, _ := sys.GetInfo(f)
+	font, err := sys.GetInfo(f)
+	if err != nil {
+		internalServerError(c)
+		return
+	}
 	log.Infof("%s", font.FullName)
 	c.Data(200, "application/x-font-ttf", f)
 }

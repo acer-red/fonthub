@@ -1,0 +1,13 @@
+web:
+  address: "127.0.0.1" # or domain
+  ssl_enable: false
+  crt_file: ./server.crt
+  key_file: ./server.key
+  port: 21520
+
+db: # mongo
+  address: ""
+  database: ""
+  port: 27017
+  user: ""
+  password: ""

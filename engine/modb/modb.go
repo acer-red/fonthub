@@ -28,5 +28,8 @@ func Init(uri string) error {
 	return nil
 }
 func Disconnect() error {
+	if mongosh == nil {
+		return nil
+	}
 	return mongosh.Disconnect(context.TODO())
 }

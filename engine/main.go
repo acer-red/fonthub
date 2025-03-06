@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/gin-gonic/gin"
+	yaml "gopkg.in/yaml.v3"
 
 	"modb"
 	"web"
@@ -18,18 +19,39 @@ import (
 )
 
 type App struct {
-	loglevel int
-	fontpath string
+	loglevel   int
+	configpath string
+	fontpath   string
+	config     Config
+}
+type Config struct {
+	Web struct {
+		Address   string `yaml:"address"`
+		SslEnable bool   `yaml:"ssl_enable"`
+		CrtFile   string `yaml:"crt_file"`
+		KeyFile   string `yaml:"key_file"`
+		Port      int    `yaml:"port"`
+	} `yaml:"web"`
+	DB struct {
+		Address  string `yaml:"address"`
+		Database string `yaml:"database"`
+		Port     int    `yaml:"port"`
+		User     string `yaml:"user"`
+		Password string `yaml:"password"`
+	} `yaml:"db"`
 }
 
 var app App
 
 func init_mongo() {
 	log.Infof("mongo连接中...")
-	str := os.Getenv("FONTLIB_DATABASE")
-	if str == "" {
-		str = "mongodb://localhost:27017/"
-	}
+	str := fmt.Sprintf("mongodb://%s:%s@%s:%d/%s",
+		app.config.DB.User,
+		app.config.DB.Password,
+		app.config.DB.Address,
+		app.config.DB.Port,
+		app.config.DB.Database,
+	)
 	err := modb.Init(str)
 	if err != nil {
 		log.Fatal(err)
@@ -43,10 +65,26 @@ func init_log() {
 }
 func init_flag() {
 	flag.IntVar(&app.loglevel, "v", log.LEVELINFOINT, fmt.Sprintf("日志等级,%d-%d", log.LEVELFATALINT, log.LEVELDEBUG3INT))
+	// 配置文件路径
+	flag.StringVar(&app.configpath, "c", "config.yaml", "配置文件路径")
 	// 字体文件路径
 	flag.StringVar(&app.fontpath, "p", "fonts/", "字体文件路径")
 	flag.Parse()
 	init_path()
+}
+func init_config() {
+	// 读取配置文件
+	f, err := os.ReadFile(app.configpath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = yaml.Unmarshal(f, &app.config)
+	if err != nil {
+		log.Fatalf("读取配置文件失败:%s", err)
+	}
+	if app.config.Web.Port <= 0 {
+		app.config.Web.Port = 21520
+	}
 }
 func init_path() {
 	paths := []string{filepath.Join(".", app.fontpath), filepath.Join("..", app.fontpath)}
@@ -65,9 +103,7 @@ func env(c *gin.Context) {
 func main() {
 	init_flag()
 	init_log()
-
-	port := "21520"
-	log.Infof("监听端口:%s", port)
+	init_config()
 
 	gin.SetMode(gin.ReleaseMode)
 	g := gin.Default()
@@ -75,12 +111,24 @@ func main() {
 	web.FontRoute(g)
 	web.FontsRoute(g)
 
-	// init_mongo()
+	init_mongo()
 	go quit()
-	log.Info("已启动")
-	err := g.Run(":" + port)
-	if err != nil {
-		log.Fatal(err)
+
+	if app.config.Web.SslEnable {
+		log.Infof("API: https://%s:%d", app.config.Web.Address, app.config.Web.Port)
+		log.Info("已启动")
+		err := g.RunTLS(fmt.Sprintf(":%d", app.config.Web.Port), app.config.Web.CrtFile, app.config.Web.KeyFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return
+	} else {
+		log.Infof("API: http://%s:%d", app.config.Web.Address, app.config.Web.Port)
+		log.Info("已启动")
+		err := g.Run(fmt.Sprintf(":%d", app.config.Web.Port))
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 }
@@ -91,6 +139,7 @@ func quit() {
 	// 监听 SIGINT 和 SIGTERM 信号
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGINT)
 	log.Infof("PID: %d", os.Getpid())
+
 	// 阻塞等待信号
 	sig := <-sigs
 	fmt.Println(sig)
