@@ -26,11 +26,12 @@ type App struct {
 }
 type Config struct {
 	Web struct {
-		Address   string `yaml:"address"`
-		SslEnable bool   `yaml:"ssl_enable"`
-		CrtFile   string `yaml:"crt_file"`
-		KeyFile   string `yaml:"key_file"`
-		Port      int    `yaml:"port"`
+		Address     string `yaml:"address"`
+		SslEnable   bool   `yaml:"ssl_enable"`
+		CrtFile     string `yaml:"crt_file"`
+		KeyFile     string `yaml:"key_file"`
+		Port        int    `yaml:"port"`
+		fullAddress string
 	} `yaml:"web"`
 	DB struct {
 		Address  string `yaml:"address"`
@@ -85,19 +86,33 @@ func init_config() {
 	if app.config.Web.Port <= 0 {
 		app.config.Web.Port = 21520
 	}
+
+	if app.config.Web.SslEnable {
+		app.config.Web.fullAddress = fmt.Sprintf("https://%s:%d", app.config.Web.Address, app.config.Web.Port)
+	} else {
+		app.config.Web.fullAddress = fmt.Sprintf("http://%s:%d", app.config.Web.Address, app.config.Web.Port)
+	}
+
 }
 func init_path() {
+	var err error
 	paths := []string{filepath.Join(".", app.fontpath), filepath.Join("..", app.fontpath)}
 	for _, p := range paths {
-		if tools.FileExist(p) {
-			app.fontpath = p
-			return
+		if !tools.FileExist(p) {
+			continue
 		}
+		app.fontpath, err = filepath.Abs(p)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Infof("字体资源路径:%s", app.fontpath)
+		return
 	}
 	log.Fatalf("字体文件路径不存在:%s", app.fontpath)
 }
 func env(c *gin.Context) {
 	c.Set("fontpath", app.fontpath)
+	c.Set("server_address", app.config.Web.fullAddress)
 	c.Next()
 }
 func main() {
@@ -106,25 +121,26 @@ func main() {
 	init_config()
 
 	gin.SetMode(gin.ReleaseMode)
+
 	g := gin.Default()
 	g.Use(env)
+	g.Static("/fonts", app.fontpath)
 	web.FontRoute(g)
 	web.FontsRoute(g)
 
 	init_mongo()
 	go quit()
 
+	log.Infof("API:%s", app.config.Web.fullAddress)
+	log.Info("启动监听...")
+
 	if app.config.Web.SslEnable {
-		log.Infof("API: https://%s:%d", app.config.Web.Address, app.config.Web.Port)
-		log.Info("已启动")
 		err := g.RunTLS(fmt.Sprintf(":%d", app.config.Web.Port), app.config.Web.CrtFile, app.config.Web.KeyFile)
 		if err != nil {
 			log.Fatal(err)
 		}
 		return
 	} else {
-		log.Infof("API: http://%s:%d", app.config.Web.Address, app.config.Web.Port)
-		log.Info("已启动")
 		err := g.Run(fmt.Sprintf(":%d", app.config.Web.Port))
 		if err != nil {
 			log.Fatal(err)

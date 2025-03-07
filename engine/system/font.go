@@ -7,15 +7,15 @@ import (
 	"golang.org/x/image/font/sfnt"
 )
 
-type font struct {
-	Name      string
-	FullName  string
-	SubName   string
-	CopyRight string
-	License   string
+type Font struct {
+	Name      string `json:"name"`
+	FullName  string `json:"full_name"`
+	SubName   string `json:"sub_name"`
+	CopyRight string `json:"copy_right"`
+	License   string `json:"license"`
 }
 
-func GetInfo(fontBytes []byte) (font, error) {
+func GetInfo(fontBytes []byte) (Font, error) {
 
 	// 1. 读取字体文件内容
 	// fontBytes, err := os.ReadFile(filename)
@@ -28,7 +28,7 @@ func GetInfo(fontBytes []byte) (font, error) {
 	f, err := sfnt.Parse(fontBytes)
 	if err != nil {
 		log.Error(err)
-		return font{}, err
+		return Font{}, err
 	}
 
 	// 3. 获取字体信息
@@ -99,7 +99,7 @@ func GetInfo(fontBytes []byte) (font, error) {
 	// - 供应商 (sfnt.NameIDManufacturer)
 	// - 样式 (sfnt.NameIDStyle)
 
-	return font{
+	return Font{
 		Name:      typographicyName,
 		FullName:  familyName,
 		SubName:   subfamilyName,

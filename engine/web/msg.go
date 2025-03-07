@@ -24,7 +24,7 @@ const mstrOK string = "ok"
 const mstrInternalServer string = "内部系统错误"
 
 // const mstrNoParam string = "缺少参数"
-const mstrBadRequest string = "错误参数"
+// const mstrBadRequest string = "错误参数"
 
 // const mstrNoUID string = "缺少uid参数"
 // const mstrNoDocID string = "缺少docID参数"
@@ -70,15 +70,15 @@ func msgNoFound(msg ...string) message {
 //		}
 //		return m
 //	}
-func msgBadRequest(msg ...string) message {
-	m := message{Err: mseqBadRequest}
-	if len(msg) > 0 {
-		m.Msg = msg[0]
-	} else {
-		m.Msg = mstrBadRequest
-	}
-	return m
-}
+// func msgBadRequest(msg ...string) message {
+// 	m := message{Err: mseqBadRequest}
+// 	if len(msg) > 0 {
+// 		m.Msg = msg[0]
+// 	} else {
+// 		m.Msg = mstrBadRequest
+// 	}
+// 	return m
+// }
 
 // func ok(g *gin.Context) {
 // 	d := msgOK()
@@ -92,9 +92,9 @@ func okData(g *gin.Context, obj any) {
 	g.JSON(http.StatusOK, d)
 }
 
-func badRequest(g *gin.Context) {
-	g.AbortWithStatusJSON(http.StatusBadRequest, msgBadRequest())
-}
+//	func badRequest(g *gin.Context) {
+//		g.AbortWithStatusJSON(http.StatusBadRequest, msgBadRequest())
+//	}
 func internalServerError(g *gin.Context) {
 	g.AbortWithStatusJSON(http.StatusInternalServerError, msgInternalServer())
 }
